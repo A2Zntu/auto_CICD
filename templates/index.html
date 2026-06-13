@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>auto_CICD Demo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; background: #f5f5f5; }
+    h1 { color: #333; }
+    .badge { display: inline-block; background: #2ecc71; color: white; padding: 4px 12px; border-radius: 12px; font-size: 14px; }
+    ul { background: white; border-radius: 8px; padding: 20px 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    li { margin: 8px 0; font-size: 18px; }
+    footer { margin-top: 40px; color: #999; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>auto_CICD Demo <span class="badge">Deployed ✓</span></h1>
+  <p>每次 push 到 GitHub，CI 自動跑測試，CD 自動部署這個頁面。</p>
+  <h2>Item List</h2>
+  <ul>
+    {% for item in items %}
+    <li>{{ item }}</li>
+    {% endfor %}
+  </ul>
+  <footer>Auto-deployed via GitHub Actions</footer>
+</body>
+</html>
