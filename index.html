@@ -30,47 +30,126 @@
     .greek-item { background: #0f1117; border-radius: 8px; padding: 14px; text-align: center; border: 1px solid #2a2d3a; }
     .greek-name  { font-size: 11px; color: #666; margin-bottom: 4px; }
     .greek-value { font-size: 16px; font-weight: 600; color: #4f6ef7; }
-    .error { background: #2a1a1a; border: 1px solid #e74c3c; border-radius: 8px; padding: 12px 16px; color: #e74c3c; margin-bottom: 16px; }
+    .hidden { display: none; }
     .badge { display: inline-block; background: #2ecc71; color: #000; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+    .error-msg { background: #2a1a1a; border: 1px solid #e74c3c; border-radius: 8px; padding: 12px 16px; color: #e74c3c; margin-bottom: 16px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Black-Scholes 計算機 <span class="badge">CI/CD Demo</span></h1>
-    <p class="subtitle">每次 git push 自動測試 + 自動部署 · Auto-deployed via GitHub Actions</p>
+<div class="container">
+  <h1>Black-Scholes 計算機 <span class="badge">CI/CD Demo</span></h1>
+  <p class="subtitle">每次 git push 自動測試 + 自動部署 · Auto-deployed via GitHub Actions</p>
 
-    
+  <div id="error-box" class="error-msg hidden"></div>
 
-    <div class="card">
-      <h2>輸入參數</h2>
-      <form method="POST">
-        <div class="grid">
-          <div>
-            <label>S — 現股價 (Current Price)</label>
-            <input type="number" name="S" step="any" value="100" required/>
-          </div>
-          <div>
-            <label>K — 履約價 (Strike Price)</label>
-            <input type="number" name="K" step="any" value="100" required/>
-          </div>
-          <div>
-            <label>T — 到期時間 (Years)</label>
-            <input type="number" name="T" step="any" value="1.0" required/>
-          </div>
-          <div>
-            <label>r — 無風險利率 (e.g. 0.05 = 5%)</label>
-            <input type="number" name="r" step="any" value="0.05" required/>
-          </div>
-          <div style="grid-column: span 2;">
-            <label>σ — 波動率 Volatility (e.g. 0.20 = 20%)</label>
-            <input type="number" name="sigma" step="any" value="0.2" required/>
-          </div>
-        </div>
-        <button type="submit">計算</button>
-      </form>
+  <div class="card">
+    <h2>輸入參數</h2>
+    <div class="grid">
+      <div>
+        <label>S — 現股價 (Current Price)</label>
+        <input type="number" id="S" step="any" value="100"/>
+      </div>
+      <div>
+        <label>K — 履約價 (Strike Price)</label>
+        <input type="number" id="K" step="any" value="100"/>
+      </div>
+      <div>
+        <label>T — 到期時間 (Years)</label>
+        <input type="number" id="T" step="any" value="1"/>
+      </div>
+      <div>
+        <label>r — 無風險利率 (e.g. 0.05 = 5%)</label>
+        <input type="number" id="r" step="any" value="0.05"/>
+      </div>
+      <div style="grid-column: span 2;">
+        <label>σ — 波動率 Volatility (e.g. 0.20 = 20%)</label>
+        <input type="number" id="sigma" step="any" value="0.20"/>
+      </div>
     </div>
-
-    
+    <button onclick="calculate()">計算</button>
   </div>
+
+  <div id="result-section" class="hidden">
+    <div class="card">
+      <h2>選擇權價格</h2>
+      <div class="results">
+        <div class="result-box call">
+          <div class="result-label">Call Option</div>
+          <div class="result-value" id="call-val">—</div>
+        </div>
+        <div class="result-box put">
+          <div class="result-label">Put Option</div>
+          <div class="result-value" id="put-val">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Greeks</h2>
+      <div class="greeks-grid">
+        <div class="greek-item"><div class="greek-name">Δ Delta Call</div><div class="greek-value" id="g-delta-call">—</div></div>
+        <div class="greek-item"><div class="greek-name">Δ Delta Put</div><div class="greek-value" id="g-delta-put">—</div></div>
+        <div class="greek-item"><div class="greek-name">Γ Gamma</div><div class="greek-value" id="g-gamma">—</div></div>
+        <div class="greek-item"><div class="greek-name">ν Vega (per 1%)</div><div class="greek-value" id="g-vega">—</div></div>
+        <div class="greek-item"><div class="greek-name">Θ Theta Call/day</div><div class="greek-value" id="g-theta-call">—</div></div>
+        <div class="greek-item"><div class="greek-name">Θ Theta Put/day</div><div class="greek-value" id="g-theta-put">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 標準常態分佈 CDF（Abramowitz & Stegun 近似，誤差 < 7.5e-8）
+  function normCDF(x) {
+    const t = 1 / (1 + 0.2316419 * Math.abs(x));
+    const d = 0.3989423 * Math.exp(-x * x / 2);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.7814779 + t * (-1.8212560 + t * 1.3302744))));
+    return x > 0 ? 1 - p : p;
+  }
+
+  function normPDF(x) {
+    return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+  }
+
+  function calculate() {
+    const S     = parseFloat(document.getElementById("S").value);
+    const K     = parseFloat(document.getElementById("K").value);
+    const T     = parseFloat(document.getElementById("T").value);
+    const r     = parseFloat(document.getElementById("r").value);
+    const sigma = parseFloat(document.getElementById("sigma").value);
+
+    const errBox = document.getElementById("error-box");
+    if (S <= 0 || K <= 0 || T <= 0 || sigma <= 0) {
+      errBox.textContent = "S、K、T、σ 必須為正數";
+      errBox.classList.remove("hidden");
+      document.getElementById("result-section").classList.add("hidden");
+      return;
+    }
+    errBox.classList.add("hidden");
+
+    const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+    const d2 = d1 - sigma * Math.sqrt(T);
+
+    const call = S * normCDF(d1) - K * Math.exp(-r * T) * normCDF(d2);
+    const put  = K * Math.exp(-r * T) * normCDF(-d2) - S * normCDF(-d1);
+
+    const deltaCall = normCDF(d1);
+    const deltaPut  = deltaCall - 1;
+    const gamma     = normPDF(d1) / (S * sigma * Math.sqrt(T));
+    const vega      = S * normPDF(d1) * Math.sqrt(T) / 100;
+    const thetaCall = (-(S * normPDF(d1) * sigma) / (2 * Math.sqrt(T)) - r * K * Math.exp(-r * T) * normCDF(d2)) / 365;
+    const thetaPut  = (-(S * normPDF(d1) * sigma) / (2 * Math.sqrt(T)) + r * K * Math.exp(-r * T) * normCDF(-d2)) / 365;
+
+    document.getElementById("call-val").textContent     = call.toFixed(4);
+    document.getElementById("put-val").textContent      = put.toFixed(4);
+    document.getElementById("g-delta-call").textContent = deltaCall.toFixed(6);
+    document.getElementById("g-delta-put").textContent  = deltaPut.toFixed(6);
+    document.getElementById("g-gamma").textContent      = gamma.toFixed(6);
+    document.getElementById("g-vega").textContent       = vega.toFixed(6);
+    document.getElementById("g-theta-call").textContent = thetaCall.toFixed(6);
+    document.getElementById("g-theta-put").textContent  = thetaPut.toFixed(6);
+
+    document.getElementById("result-section").classList.remove("hidden");
+  }
+</script>
 </body>
 </html>
