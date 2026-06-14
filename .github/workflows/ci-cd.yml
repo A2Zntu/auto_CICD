@@ -7,7 +7,7 @@ on:
     branches: [main, master]
 
 jobs:
-  # ── CI：自動跑測試 ───────────────────────────────────────
+  # ── CI：跑 13 個測試 ─────────────────────────────────────
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -27,7 +27,7 @@ jobs:
       - name: Run pytest
         run: pytest tests/ -v
 
-  # ── CD：部署到 GitHub Pages ─────────────────────────────
+  # ── CD：部署到 GitHub Pages ──────────────────────────────
   deploy:
     name: Deploy to GitHub Pages
     needs: test

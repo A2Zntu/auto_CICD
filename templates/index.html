@@ -1,27 +1,122 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>auto_CICD Demo</title>
+  <title>Black-Scholes 計算機</title>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; background: #f5f5f5; }
-    h1 { color: #333; }
-    .badge { display: inline-block; background: #2ecc71; color: white; padding: 4px 12px; border-radius: 12px; font-size: 14px; }
-    ul { background: white; border-radius: 8px; padding: 20px 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    li { margin: 8px 0; font-size: 18px; }
-    footer { margin-top: 40px; color: #999; font-size: 13px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; padding: 40px 20px; }
+    .container { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+    .subtitle { color: #888; font-size: 14px; margin-bottom: 32px; }
+    .card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
+    input { width: 100%; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 15px; outline: none; }
+    input:focus { border-color: #4f6ef7; }
+    button { width: 100%; background: #4f6ef7; color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    button:hover { background: #3d5ce0; }
+    .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .result-box { background: #0f1117; border-radius: 10px; padding: 20px; text-align: center; border: 1px solid #2a2d3a; }
+    .result-box.call { border-color: #2ecc71; }
+    .result-box.put  { border-color: #e74c3c; }
+    .result-label { font-size: 12px; color: #888; margin-bottom: 8px; }
+    .result-value { font-size: 32px; font-weight: 700; }
+    .result-box.call .result-value { color: #2ecc71; }
+    .result-box.put  .result-value { color: #e74c3c; }
+    .greeks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .greek-item { background: #0f1117; border-radius: 8px; padding: 14px; text-align: center; border: 1px solid #2a2d3a; }
+    .greek-name  { font-size: 11px; color: #666; margin-bottom: 4px; }
+    .greek-value { font-size: 16px; font-weight: 600; color: #4f6ef7; }
+    .error { background: #2a1a1a; border: 1px solid #e74c3c; border-radius: 8px; padding: 12px 16px; color: #e74c3c; margin-bottom: 16px; }
+    .badge { display: inline-block; background: #2ecc71; color: #000; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
   </style>
 </head>
 <body>
-  <h1>auto_CICD Demo <span class="badge">Deployed ✓</span></h1>
-  <p>每次 push 到 GitHub，CI 自動跑測試，CD 自動部署這個頁面。</p>
-  <h2>Item List</h2>
-  <ul>
-    {% for item in items %}
-    <li>{{ item }}</li>
-    {% endfor %}
-  </ul>
-  <footer>Auto-deployed via GitHub Actions</footer>
+  <div class="container">
+    <h1>Black-Scholes 計算機 <span class="badge">CI/CD Demo</span></h1>
+    <p class="subtitle">每次 git push 自動測試 + 自動部署 · Auto-deployed via GitHub Actions</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <div class="card">
+      <h2>輸入參數</h2>
+      <form method="POST">
+        <div class="grid">
+          <div>
+            <label>S — 現股價 (Current Price)</label>
+            <input type="number" name="S" step="any" value="{{ params.S }}" required/>
+          </div>
+          <div>
+            <label>K — 履約價 (Strike Price)</label>
+            <input type="number" name="K" step="any" value="{{ params.K }}" required/>
+          </div>
+          <div>
+            <label>T — 到期時間 (Years)</label>
+            <input type="number" name="T" step="any" value="{{ params.T }}" required/>
+          </div>
+          <div>
+            <label>r — 無風險利率 (e.g. 0.05 = 5%)</label>
+            <input type="number" name="r" step="any" value="{{ params.r }}" required/>
+          </div>
+          <div style="grid-column: span 2;">
+            <label>σ — 波動率 Volatility (e.g. 0.20 = 20%)</label>
+            <input type="number" name="sigma" step="any" value="{{ params.sigma }}" required/>
+          </div>
+        </div>
+        <button type="submit">計算</button>
+      </form>
+    </div>
+
+    {% if result %}
+    <div class="card">
+      <h2>選擇權價格</h2>
+      <div class="results">
+        <div class="result-box call">
+          <div class="result-label">Call Option</div>
+          <div class="result-value">{{ result.call }}</div>
+        </div>
+        <div class="result-box put">
+          <div class="result-label">Put Option</div>
+          <div class="result-value">{{ result.put }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Greeks</h2>
+      <div class="greeks-grid">
+        <div class="greek-item">
+          <div class="greek-name">Δ Delta (Call)</div>
+          <div class="greek-value">{{ result.greeks.delta_call }}</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">Δ Delta (Put)</div>
+          <div class="greek-value">{{ result.greeks.delta_put }}</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">Γ Gamma</div>
+          <div class="greek-value">{{ result.greeks.gamma }}</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">ν Vega (per 1%)</div>
+          <div class="greek-value">{{ result.greeks.vega }}</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">Θ Theta Call (per day)</div>
+          <div class="greek-value">{{ result.greeks.theta_call }}</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">Θ Theta Put (per day)</div>
+          <div class="greek-value">{{ result.greeks.theta_put }}</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </body>
 </html>
