@@ -17,8 +17,8 @@ def test_index_returns_200(client):
 def test_index_contains_bs_form(client):
     rv = client.get("/")
     assert b"Black-Scholes" in rv.data
-    assert b'name="S"' in rv.data
-    assert b'name="sigma"' in rv.data
+    assert b'id="S"' in rv.data
+    assert b'id="sigma"' in rv.data
 
 
 def test_health_ok(client):
